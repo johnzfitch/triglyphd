@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Triglyph Code Search
+Comment=Fast trigram-based code search
+Exec=/home/zack/dev/triglyphd/target/release/triglyphd
+Icon=system-search
+Type=Application
+Categories=Utility;FileManager;
+NoDisplay=true

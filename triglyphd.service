@@ -1,0 +1,13 @@
+[Unit]
+Description=Triglyph Search Daemon
+Documentation=https://github.com/zack/triglyphd
+After=dbus.socket
+
+[Service]
+Type=dbus
+BusName=org.freedesktop.Triglyph1
+ExecStart=/usr/local/bin/triglyphd
+Restart=on-failure
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,3 @@
+[D-BUS Service]
+Name=org.freedesktop.Triglyph1
+Exec=/home/zack/dev/triglyphd/target/release/triglyphd
