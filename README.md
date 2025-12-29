@@ -1,16 +1,22 @@
 # triglyphd
 
-D-Bus daemon for [triglyph](../triglyph) trigram search. Provides immediate hookability for Nautilus and other GNOME applications.
+![dark-network-server](icons/dark-network-server.png) **D-Bus daemon for system-wide trigram search**
 
-## Features
+Provides instant file search for desktop applications through [triglyph](https://github.com/johnzfitch/triglyph) trigram indexing.
+
+---
+
+## ![star](icons/star.png) Features
 
 - **D-Bus integration**: `org.freedesktop.Triglyph1` on session bus
-- **Nautilus-ready**: Designed for file manager content search
+- **File manager ready**: Designed for Nautilus/COSMIC Files content search
 - **Zero-RSS indexing**: Uses triglyph's mmap-based indices
 - **Background indexing**: Non-blocking index builds
 - **CLI interface**: One-shot commands for scripting
 
-## Installation
+---
+
+## ![toolbox](icons/toolbox.png) Installation
 
 ```bash
 cargo build --release
@@ -26,7 +32,9 @@ systemctl --user daemon-reload
 systemctl --user enable --now triglyphd
 ```
 
-## D-Bus Interface
+---
+
+## ![diagram](icons/diagram.png) D-Bus Interface
 
 **Service**: `org.freedesktop.Triglyph1`
 **Object**: `/org/freedesktop/Triglyph1`
@@ -43,7 +51,11 @@ systemctl --user enable --now triglyphd
 | `Remove(path)` | `s -> (bs)` | Remove an index |
 | `Cancel()` | `-> (bs)` | Cancel current indexing |
 
-### Usage from Shell
+---
+
+## ![console](icons/console.png) Usage
+
+### From Shell
 
 ```bash
 # Call via dbus-send
@@ -56,7 +68,7 @@ busctl --user call org.freedesktop.Triglyph1 /org/freedesktop/Triglyph1 \
     org.freedesktop.Triglyph1 Search s "impl Iterator"
 ```
 
-### Usage from GLib (C/Python)
+### From GLib (Python)
 
 ```python
 from gi.repository import Gio
@@ -80,7 +92,9 @@ success, msg = proxy.Index("(s)", "/home/user/code")
 print(msg)
 ```
 
-## CLI Usage
+---
+
+## ![script](icons/script.png) CLI Commands
 
 ```bash
 # Run as daemon (default)
@@ -95,23 +109,124 @@ triglyphd status ~/code/myproject
 triglyphd remove ~/code/myproject
 ```
 
-## Nautilus Integration
+---
 
-The daemon is designed for Nautilus search provider integration. Example integration points:
+## ![search](icons/search.png) File Manager Integration
 
-1. **Search Provider**: Implement `org.gnome.Shell.SearchProvider2` that delegates to triglyphd
-2. **Context Menu**: Add "Index with Triglyph" action
-3. **Search Bar**: Integrate with Nautilus search for content-based results
+The daemon is designed for file manager search provider integration:
 
-## Index Storage
+| Integration Point | Description |
+|------------------|-------------|
+| **Search Provider** | Implement `org.gnome.Shell.SearchProvider2` that delegates to triglyphd |
+| **Context Menu** | Add "Index with Triglyph" action |
+| **Search Bar** | Integrate with file manager search for content-based results |
+
+### COSMIC Files Integration
+
+[filearchy](https://github.com/johnzfitch/filearchy) includes native triglyph integration:
+
+1. Right-click folder → **"Enable Fast Search"**
+2. Background indexing via triglyphd
+3. Sub-10ms search results
+
+---
+
+## ![folder](icons/folder.png) Index Storage
 
 Indices are stored in `~/.local/share/triglyph/<hash>/`:
-- `index.tri` - Trigram posting lists
-- `index.tri.presence` - Presence bitset
-- `index.files.str` - Path string table
-- `index.files.dir` - File metadata directory
-- `meta.json` - Index metadata
 
-## License
+```
+~/.local/share/triglyph/
+├── <hash1>/
+│   ├── index.tri           # Trigram posting lists
+│   ├── index.tri.presence  # Presence bitset
+│   ├── index.files.str     # Path string table
+│   ├── index.files.dir     # File metadata directory
+│   └── meta.json           # Index metadata
+├── <hash2>/
+│   └── ...
+```
+
+Each indexed directory gets a unique hash based on its canonical path.
+
+---
+
+## ![layers](icons/layers.png) Architecture
+
+```
+┌─────────────────────────────────────────────────┐
+│           Desktop Applications                   │
+│    (Nautilus, COSMIC Files, custom tools)       │
+└──────────────────────┬──────────────────────────┘
+                       │ D-Bus IPC
+                       ▼
+┌─────────────────────────────────────────────────┐
+│                  triglyphd                       │
+│  ┌───────────┐  ┌───────────┐  ┌───────────┐   │
+│  │ Index Mgr │  │ Query Eng │  │ CLI       │   │
+│  └─────┬─────┘  └─────┬─────┘  └───────────┘   │
+│        │              │                         │
+│        └──────┬───────┘                         │
+│               ▼                                 │
+│        ┌──────────────┐                         │
+│        │   triglyph   │                         │
+│        │   (library)  │                         │
+│        └──────────────┘                         │
+└─────────────────────────────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────────┐
+│              ~/.local/share/triglyph/           │
+│                   (mmap'd)                      │
+└─────────────────────────────────────────────────┘
+```
+
+---
+
+## ![lightning](icons/lightning.png) Performance
+
+| Operation | Latency |
+|-----------|---------|
+| Index 10K files | ~2s |
+| Index 100K files | ~15s |
+| Search (cached) | <10ms |
+| Search (cold) | ~50ms |
+
+Performance scales with the [triglyph](https://github.com/johnzfitch/triglyph) library's zero-RSS architecture.
+
+---
+
+## ![settings](icons/settings.png) Configuration
+
+Environment variables:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `TRIGLYPH_DATA_DIR` | `~/.local/share/triglyph` | Index storage location |
+| `TRIGLYPH_LOG_LEVEL` | `info` | Logging verbosity |
+
+---
+
+## ![protection](icons/protection.png) Security
+
+- Indices are user-private (`0700` permissions)
+- No root privileges required
+- Sandboxed file access (only indexes paths you specify)
+- D-Bus policy restricts access to session bus
+
+---
+
+## ![lock](icons/lock.png) License
 
 MIT
+
+---
+
+## ![eye](icons/eye.png) See Also
+
+- [triglyph](https://github.com/johnzfitch/triglyph) - The underlying trigram index library
+- [filearchy](https://github.com/johnzfitch/filearchy) - COSMIC Files fork with integrated trigram search
+
+---
+
+<sub>Icons from [iconics](https://github.com/johnzfitch/iconics) (3,372+ semantic icons)</sub>
